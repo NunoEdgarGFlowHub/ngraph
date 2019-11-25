@@ -751,13 +751,25 @@ private:
         case OP_TYPEID::CumSum:
         {
             const op::CumSum* cumsum = static_cast<const op::CumSum*>(&node);
-            reference::cumsum<T>(args[0]->get_data_ptr<const T>(),
-                                 out[0]->get_data_ptr<T>(),
-                                 node.get_input_shape(0),
-                                 node.get_output_shape(0),
-                                 cumsum->get_axis(),
-                                 cumsum->is_exclusive(),
-                                 cumsum->is_reverse());
+            auto axis_et = node.get_input_element_type(1);
+            if (axis_et == element::i32)
+            {
+                reference::cumsum<T, int32_t>(args[0]->get_data_ptr<const T>(),
+                                              args[1]->get_data_ptr<const int32_t>(),
+                                              out[0]->get_data_ptr<T>(),
+                                              node.get_input_shape(0),
+                                              cumsum->is_exclusive(),
+                                              cumsum->is_reverse());
+            }
+            if (axis_et == element::i64)
+            {
+                reference::cumsum<T, int64_t>(args[0]->get_data_ptr<const T>(),
+                                              args[1]->get_data_ptr<const int64_t>(),
+                                              out[0]->get_data_ptr<T>(),
+                                              node.get_input_shape(0),
+                                              cumsum->is_exclusive(),
+                                              cumsum->is_reverse());
+            }
             break;
         }
         case OP_TYPEID::Dequantize:
@@ -1882,6 +1894,7 @@ private:
         case OP_TYPEID::Tile:
         case OP_TYPEID::DynReplaceSlice:
         case OP_TYPEID::FloorMod:
+        case OP_TYPEID::VariadicSplit:
             throw unsupported_op("Unsupported op '" + node.description() + "'");
 #if defined(__GNUC__) && !(__GNUC__ == 4 && __GNUC_MINOR__ == 8)
 #pragma GCC diagnostic pop
